@@ -1,0 +1,24 @@
+{
+    "KPlugin": {
+        "Category": "Project Management", 
+        "Description": "Imports and edits MSVC 2008 projects", 
+        "Icon": "qtlogo", 
+        "Id": "KDevMsvcManager", 
+        "Name": "MSVC Project Manager", 
+        "ServiceTypes": [
+            "KDevelop/Plugin"
+        ]
+    }, 
+    "X-KDevelop-FileManager": "MSVC", 
+    "X-KDevelop-Interfaces": [
+        "org.kdevelop.IBuildSystemManager", 
+        "org.kdevelop.IProjectFileManager"
+    ], 
+    "X-KDevelop-Mode": "NoGUI", 
+    "X-KDevelop-ProjectFilesFilter": [
+        "*.sln"
+    ], 
+    "X-KDevelop-ProjectFilesFilterDescription": [
+        "Visual Studio Solution Files"
+    ]
+}
