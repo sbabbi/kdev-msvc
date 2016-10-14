@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MsvcConfig</class>
+ <widget class="QWidget" name="MsvcConfig">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>520</width>
+    <height>552</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>273</height>
+      </size>
+     </property>
+     <property name="title">
+      <string>Compiler Settings</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>DevEnv.exe Path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="KUrlRequester" name="builder_path"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="KSqueezedTextLabel" name="ksqueezedtextlabel">
+        <property name="text">
+         <string>MSVC Include Path</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="KUrlRequester" name="msvc_include">
+        <property name="mode">
+         <set>KFile::Directory|KFile::ExistingOnly|KFile::LocalOnly</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="KComboBox" name="config_combo">
+        <item>
+         <property name="text">
+          <string>Debug</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Release</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="KSqueezedTextLabel" name="ksqueezedtextlabel_2">
+        <property name="text">
+         <string>Configuration</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="KSqueezedTextLabel" name="ksqueezedtextlabel_3">
+        <property name="text">
+         <string>Architecture</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="KComboBox" name="arch_combo">
+        <item>
+         <property name="text">
+          <string>Win32</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>x64</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>492</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>KSqueezedTextLabel</class>
+   <extends>QLabel</extends>
+   <header>ksqueezedtextlabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>KUrlRequester</class>
+   <extends>QWidget</extends>
+   <header>kurlrequester.h</header>
+  </customwidget>
+  <customwidget>
+   <class>KComboBox</class>
+   <extends>QComboBox</extends>
+   <header>kcombobox.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
