@@ -76,10 +76,11 @@ public:
 
 protected:
     void slotResult(KJob*) override;
+    bool doKill() override;
 
 private slots:
     void addProject( const QString & relativePath );
-    
+
 private:
     //BUG likely data races everywhere
     //TODO make it cancellable

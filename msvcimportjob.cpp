@@ -46,6 +46,7 @@ MsvcImportJob::MsvcImportJob(MsvcProjectItem* dom) :
     connect(m_futureWatcher, &QFutureWatcher<void>::finished,
             this, &MsvcImportJob::emitResult );
     
+    setCapabilities(KJob::Killable);
     setObjectName(i18n("Project Import: %1", m_dom->project()->name()));
     
     connect(KDevelop::ICore::self(), &KDevelop::ICore::aboutToShutdown,
@@ -81,9 +82,11 @@ void MsvcImportJob::run()
     QFile file( m_file.toLocalFile() );
     if (! file.open(QFile::ReadOnly) )
     {
-        qCWarning(KDEV_MSVC) << "Failed to open " << m_file.toLocalFile();
+        qCDebug(KDEV_MSVC) << "Failed to open " << m_file.toLocalFile();
         return;
     }
+    
+    qCDebug(KDEV_MSVC) << "Reading: " << m_file;
     
     QXmlStreamReader reader(&file);
     
@@ -194,6 +197,7 @@ MsvcImportSolutionJob::MsvcImportSolutionJob(MsvcSolutionItem* dom) :
     connect(m_futureWatcher, &QFutureWatcher<void>::finished,
             this, &MsvcImportSolutionJob::reconsider );
     
+    setCapabilities(KJob::Killable);
     setObjectName(i18n("Solution Import: %1", m_dom->project()->name()));
 }
 
@@ -207,6 +211,20 @@ void MsvcImportSolutionJob::slotResult(KJob * job)
 {
     KCompositeJob::slotResult(job);
     reconsider();
+}
+
+bool MsvcImportSolutionJob::doKill()
+{
+    QList<KJob*> jobs = subjobs();
+    
+    // Try to kill them all!
+    auto zombies_start = std::partition( jobs.begin(), jobs.end(), [](KJob* j) { return j->kill(); } );
+    
+    // Remove the ones that we actually killed
+    std::for_each( jobs.begin(), zombies_start, [&](KJob* j) { removeSubjob(j); } );
+    
+    // If no zombies left, report success.
+    return zombies_start == jobs.end();
 }
 
 void MsvcImportSolutionJob::addProject(const QString & relativePath)
@@ -267,6 +285,8 @@ void MsvcImportSolutionJob::run()
             QString projectName = result.captured(2);
             QString projectPath = result.captured(3);
 //             QUuid projectUUID = result.captured(4);
+            
+            qCDebug(KDEV_MSVC) << "About to parse project file: " << projectPath;
            
             QMetaObject::invokeMethod(this,
                                       "addProject", 
