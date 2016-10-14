@@ -47,6 +47,8 @@ public:
     
     QHash<QString,QString> defines(KDevelop::ProjectBaseItem*) const override;
     
+    bool hasIncludesOrDefines(KDevelop::ProjectBaseItem* item) const override;
+    
     int perProjectConfigPages() const override;
     KDevelop::ConfigPage* perProjectConfigPage(int number, 
                                                const KDevelop::ProjectConfigOptions& options, 
@@ -76,16 +78,6 @@ public:
     {
         return false;
     }
-	
-	KDevelop::Path::List frameworkDirectories(KDevelop::ProjectBaseItem*) const override
-	{
-		return {};
-	}
-	
-	bool hasBuildInfo(KDevelop::ProjectBaseItem*) const override
-	{
-		return false;
-	}
 
     KDevelop::Path buildDirectory(KDevelop::ProjectBaseItem*) const override
     {

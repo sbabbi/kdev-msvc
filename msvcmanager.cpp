@@ -53,12 +53,12 @@ KDevelop::ProjectFolderItem* MsvcProjectManager::import( KDevelop::IProject* pro
     
     KDevelop::Path path( project->path(),
                          grp.readEntry("CreatedFrom", QString() ) );
-						 
+
 #ifdef _WIN32
-	// Append .sln
-	path = KDevelop::Path( path.parent(), path.lastPathSegment() + ".sln" );
+    // Append .sln
+    path = KDevelop::Path( path.parent(), path.lastPathSegment() + ".sln" );
 #endif //_WIN32
-	   
+
     return new MsvcSolutionItem( project, path );
 }
 
@@ -136,6 +136,13 @@ QHash<QString,QString> MsvcProjectManager::defines(KDevelop::ProjectBaseItem* it
     return {};
 }
 
+bool MsvcProjectManager::hasIncludesOrDefines(KDevelop::ProjectBaseItem* item) const
+{
+    if ( dynamic_cast<MsvcProjectItem*>(item) )
+        return true;
+    return false;
+}
+
 int MsvcProjectManager::perProjectConfigPages() const
 {
     return 1;
@@ -153,5 +160,6 @@ KDevelop::ConfigPage* MsvcProjectManager::perProjectConfigPage(int number,
         return nullptr;
     }
 }
+
 
 #include "msvcmanager.moc"

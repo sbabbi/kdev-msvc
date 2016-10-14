@@ -13,7 +13,7 @@ enable_testing()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${MSVCManager_SOURCE_DIR}/cmake/)
 
 find_package(Qt5 5.4.0 REQUIRED COMPONENTS Core)
-find_package(KF5 5.15.0 REQUIRED COMPONENTS ItemModels Parts TextEditor)
+find_package(KF5 5.28.0 REQUIRED COMPONENTS ItemModels Parts TextEditor)
 find_package(KDevPlatform 5.0.0 REQUIRED)
 find_package(KDevelop 5.0.0 REQUIRED)
 
