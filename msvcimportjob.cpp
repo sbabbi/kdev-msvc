@@ -21,11 +21,13 @@
 #include "msvcimportjob.h"
 #include "debug.h"
 #include "msvcmodelitems.h"
+#include "msvcprojectparser.h"
 
 #include <QDebug>
 #include <QFile>
 #include <QFutureWatcher>
 #include <QRegularExpression>
+#include <QThreadPool>
 #include <QUuid>
 #include <QXmlStreamReader>
 
@@ -37,32 +39,65 @@
 #include <interfaces/icore.h>
 #include <interfaces/iproject.h>
 
+namespace
+{
+MsvcProjectParser * CreateProjectParser(MsvcProjectItem* dom)
+{
+    const KDevelop::Path & path = dom->path();
+
+    if ( path.lastPathSegment().endsWith(".vcproj", Qt::CaseInsensitive) )
+    {
+        return new MsvcVcProjParser(dom);
+    }
+    else if ( path.lastPathSegment().endsWith(".vcxproj", Qt::CaseInsensitive) )
+    {
+        return new MsvcVcxProjParser(dom);
+    }
+    else
+    {
+        qCWarning(KDEV_MSVC) << "Unknown project file extension: (" << path << ")";
+        return nullptr;
+    }
+}
+}
+
 MsvcImportJob::MsvcImportJob(MsvcProjectItem* dom) :
-    m_dom(dom),
-    m_file(dom->path()),
-    m_futureWatcher(new QFutureWatcher<void>(this)),
-    m_canceled(false)
+    m_parser( CreateProjectParser(dom) ),
+    m_futureWatcher(new QFutureWatcher<void>(this))
 {
     connect(m_futureWatcher, &QFutureWatcher<void>::finished,
             this, &MsvcImportJob::emitResult );
-    
+
     setCapabilities(KJob::Killable);
-    setObjectName(i18n("Project Import: %1", m_dom->project()->name()));
+    setObjectName(i18n("Project Import: %1", dom->project()->name()));
     
     connect(KDevelop::ICore::self(), &KDevelop::ICore::aboutToShutdown,
             this, &MsvcImportJob::aboutToShutdown );
+
+    if (m_parser)
+    {
+        m_parser->setAutoDelete(false);
+        m_futureWatcher->setFuture(m_parser->getFuture());
+    }
+
+}
+
+MsvcImportJob::~MsvcImportJob()
+{
+    delete m_parser;
 }
 
 void MsvcImportJob::start()
 {
-    QFuture<void> future = QtConcurrent::run(this, &MsvcImportJob::run);
-    m_futureWatcher->setFuture(future);
+    if ( m_parser )
+    {
+        QThreadPool::globalInstance()->start( m_parser );
+    }
 }
 
 bool MsvcImportJob::doKill()
 {
     m_futureWatcher->cancel();
-    m_canceled = true;
 
     setError(1);
     setErrorText(i18n("Project import canceled."));
@@ -75,117 +110,6 @@ bool MsvcImportJob::doKill()
 void MsvcImportJob::aboutToShutdown()
 {
     kill();
-}
-
-void MsvcImportJob::run()
-{    
-    QFile file( m_file.toLocalFile() );
-    if (! file.open(QFile::ReadOnly) )
-    {
-        qCDebug(KDEV_MSVC) << "Failed to open " << m_file.toLocalFile();
-        return;
-    }
-    
-    qCDebug(KDEV_MSVC) << "Reading: " << m_file;
-    
-    QXmlStreamReader reader(&file);
-    
-    for ( ;reader.readNextStartElement(); reader.skipCurrentElement() )
-    {
-        if ( reader.name().compare("VisualStudioProject", Qt::CaseInsensitive) == 0 )
-        {
-            parseVcProj(reader);
-        }
-    }
-    
-    // Add the project file itself
-    new KDevelop::ProjectFileItem( m_dom->project(), m_file, m_dom );
-}
-
-void MsvcImportJob::parseFileList(KDevelop::ProjectBaseItem* parent,
-                                  QXmlStreamReader& reader) const
-{
-    while( reader.readNextStartElement() )
-    {
-        if ( m_canceled )
-            return;
-        
-        if ( reader.name().compare("File", Qt::CaseInsensitive) == 0 )
-        {
-            QString relativePath = reader.attributes().value("RelativePath").toString().replace('\\', '/');
-
-            KDevelop::Path path (m_file.parent(), relativePath );
-
-            new KDevelop::ProjectFileItem(parent->project(), path, parent );
-            
-            reader.skipCurrentElement();
-        }
-        else if ( reader.name().compare("Filter", Qt::CaseInsensitive) == 0 )
-        {
-            MsvcFilterItem * filter = new MsvcFilterItem( parent->project(),
-                                                          reader.attributes().value("Name").toString(),
-                                                          parent );
-            
-            parseFileList( filter, reader );
-        }
-    }
-}
-
-void MsvcImportJob::parseVcProj(QXmlStreamReader& reader) const
-{
-    QString projectName = reader.attributes().value("Name").toString();
-    QUuid projectUuid = reader.attributes().value("ProjectGUID").toString();
-    
-    m_dom->rename( projectName );
-    m_dom->setUuid( projectUuid );
-   
-    while ( reader.readNextStartElement() )
-    {
-        if ( reader.name().compare("Files", Qt::CaseInsensitive) == 0 )
-        {
-            parseFileList( m_dom, reader );
-        }
-        else if ( reader.name() == "Configurations" )
-        {
-            while ( reader.readNextStartElement() )
-            {
-                if ( reader.name() == "Configuration" )
-                {
-                    m_dom->addConfiguration( parseConfig( reader ) );
-                }
-                else
-                {
-                    reader.skipCurrentElement();
-                }
-            }
-        }
-        else
-        {
-            reader.skipCurrentElement();
-        }
-    }
-    
-    MsvcProjectConfig config = m_dom->getCurrentConfig();
-    switch ( config.configurationType )
-    {
-        case MsvcProjectConfig::Unknown:
-        case MsvcProjectConfig::Generic:
-            new KDevelop::ProjectTargetItem( m_dom->project(),
-                                             projectName,
-                                             m_dom );
-        default:
-        case MsvcProjectConfig::Application:
-            new MsvcExecutableTargetItem( m_dom->project(),
-                                          projectName,
-                                          m_dom );
-            break;
-        case MsvcProjectConfig::DynamicLibrary:
-        case MsvcProjectConfig::StaticLibrary:
-            new KDevelop::ProjectLibraryTargetItem( m_dom->project(),
-                                                    projectName,
-                                                    m_dom );
-            break;
-    }
 }
 
 MsvcImportSolutionJob::MsvcImportSolutionJob(MsvcSolutionItem* dom) :

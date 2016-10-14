@@ -24,6 +24,7 @@ set(MSVCManager_SRCS
     msvcbuilderpreferences.cpp
     msvcconfig.cpp
     msvcprojectconfig.cpp
+    msvcprojectparser.cpp
     msvcimportjob.cpp
     msvcmanager.cpp
     msvcmodelitems.cpp

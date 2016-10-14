@@ -32,6 +32,7 @@ class QXmlStreamReader;
 
 class MsvcProjectItem;
 class MsvcSolutionItem;
+class MsvcProjectParser;
 
 namespace KDevelop
 {
@@ -44,7 +45,8 @@ class MsvcImportJob : public KJob
     Q_OBJECT
 public:
     explicit MsvcImportJob( MsvcProjectItem * dom);
-    
+    ~MsvcImportJob();
+
     void start() override;
 
 protected:
@@ -54,16 +56,8 @@ private slots:
     void aboutToShutdown();
 
 private:
-    void run();
-    void parseFileList(KDevelop::ProjectBaseItem * parent,
-                       QXmlStreamReader & reader) const;
-
-    void parseVcProj(QXmlStreamReader & reader) const;
-
-    MsvcProjectItem * m_dom;
-    KDevelop::Path m_file;
+    MsvcProjectParser * m_parser;
     QFutureWatcher<void> * m_futureWatcher;
-    bool m_canceled;
 };
 
 class MsvcImportSolutionJob : public KCompositeJob
