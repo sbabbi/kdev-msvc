@@ -23,6 +23,7 @@
 
 #include <QFileInfo>
 #include <QUrl>
+#include <Qtglobal>
 
 #include <KConfigGroup>
 
@@ -42,41 +43,59 @@ bool MsvcConfig::isConfigured(const KDevelop::IProject* project)
     return cg.exists() && cg.hasKey(DEVENV_BINARY) && cg.hasKey(MSVC_INCLUDE) && cg.hasKey(ACTIVE_CONFIGURATION);
 }
 
-QList<QUrl> MsvcConfig::findMSVC()
+QList<MsvcConfig::CompilerPath> MsvcConfig::findMSVC()
 {
-    // For now hard-coded reasonable defaults
-    static const QUrl msvcCandidatePaths[] =
+    // Environment variables to look for
+    static const QPair<int, const char *> msvcToolsEnv[] =
     {
-        QUrl(R"(C:/Program Files/Microsoft Visual Studio 9.0)")
+        { 14, "VS140COMNTOOLS" },
+        { 13, "VS130COMNTOOLS" },
+        { 12, "VS120COMNTOOLS" },
+        { 11, "VS110COMNTOOLS" },
+        { 10, "VS100COMNTOOLS" },
+        { 9, "VS90COMNTOOLS" }
     };
     
-    QList<QUrl> result;
-    for ( const auto & p : msvcCandidatePaths )
+    QList<CompilerPath> result;
+    for ( const auto & p : msvcToolsEnv )
     {
-        QString localPath = p.toLocalFile();
-        QFileInfo info(localPath);
-        
-        if ( info.exists() && info.isDir() )
-            result.push_back(p);
+        QByteArray e = qgetenv( p.second );
+        if ( !e.isEmpty() )
+        {
+            KDevelop::Path common7Path = KDevelop::Path(e.constData()).parent();
+
+            QFileInfo info(common7Path.toLocalFile() );
+            if ( info.exists() )
+            {
+                result.append( findCompilerPath( common7Path, p.first) );
+            }
+        }
     }
     
     return result;
 }
 
-QUrl MsvcConfig::findDevEnvBinary(const QUrl& msvc)
+QList< MsvcConfig::CompilerPath > MsvcConfig::findCompilerPath( const KDevelop::Path & common7path, int version )
 {
-    static const QString devenvCandidateSubPaths[] = 
+    static const QPair<QString, QString> devenvCandidateSubPaths[] =
     {
-        "Common7/IDE/devenv.exe",
-        "Common7/IDE/VCExpress.exe"
+        {"IDE/devenv.com", "" },
+        {"IDE/VCExpress.exe", " (Express)" }
     };
-    for ( const QString & s : devenvCandidateSubPaths )
+
+    QList< MsvcConfig::CompilerPath > result;
+    for ( const auto & s : devenvCandidateSubPaths )
     {
-        QUrl fullPath = msvc.resolved(s);
+        KDevelop::Path fullPath = KDevelop::Path(common7path, s.first);
+
         QFileInfo i(fullPath.toLocalFile());
-        
+
         if ( i.exists() && i.isExecutable() )
-            return fullPath;
+        {
+            QString compilerName = "Microsoft Visual Studio " + QString::number( version ) + s.second;
+            result.push_back( CompilerPath{ version, fullPath, compilerName } );
+        }
     }
-    return QUrl();
+    return result;
+ 
 }

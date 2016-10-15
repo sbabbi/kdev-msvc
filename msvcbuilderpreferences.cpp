@@ -36,8 +36,33 @@ MsvcBuilderPreferences::MsvcBuilderPreferences(KDevelop::IPlugin* plugin,
     m_project(options.project),
     m_configUi(new Ui::MsvcConfig)
 {
-    
     m_configUi->setupUi(this);
+
+    auto compilers = MsvcConfig::findMSVC();
+
+    KComboBox * compVersionComboBox = m_configUi->version_combo;
+    for (auto const & x : compilers )
+    {
+        const int index = compVersionComboBox->count() - 1;
+        compVersionComboBox->insertItem( index, x.fullName, x.path.toUrl() );
+    }
+
+    const int versionComboCount = compVersionComboBox->count();
+    compVersionComboBox->setCurrentIndex(0);
+
+    auto showHideCustomCompPath = [this, versionComboCount](int currentIndex)
+    {
+        // Show only if the current selected index is the last one.
+        const bool hidden = currentIndex < versionComboCount - 1;
+
+        m_configUi->devenv_exe_label->setHidden(hidden);
+        m_configUi->builder_path->setHidden(hidden);
+    };
+
+    showHideCustomCompPath( versionComboCount > 1);
+
+    connect(compVersionComboBox, static_cast<void (QComboBox::*)(int)>( &KComboBox::currentIndexChanged ),
+            this, showHideCustomCompPath);
 }
 
 MsvcBuilderPreferences::~MsvcBuilderPreferences()
@@ -49,8 +74,16 @@ void MsvcBuilderPreferences::apply()
 {
     qCDebug(KDEV_MSVC) << "Saving data";
     KConfigGroup cg(m_project->projectConfiguration(), MsvcConfig::CONFIG_GROUP);
-    
-    cg.writeEntry( MsvcConfig::DEVENV_BINARY, m_configUi->builder_path->url().toLocalFile() );
+
+    KComboBox * compVersionComboBox = m_configUi->version_combo;
+
+    const bool customCompilerPath = compVersionComboBox->currentIndex() >= compVersionComboBox->count() - 1;
+
+    QUrl compilerPath = customCompilerPath  ?
+        m_configUi->builder_path->url().toLocalFile() :
+        compVersionComboBox->itemData(compVersionComboBox->currentIndex()).toUrl();
+
+    cg.writeEntry( MsvcConfig::DEVENV_BINARY, compilerPath );
     cg.writeEntry( MsvcConfig::MSVC_INCLUDE, m_configUi->msvc_include->url().toLocalFile() );
     
     //TODO saving currentText is not very pretty...

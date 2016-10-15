@@ -22,7 +22,8 @@
 #define MSVCCONFIG_H
 
 #include <QList>
-#include <QUrl>
+
+#include <kdevplatform/util/path.h>
 
 namespace KDevelop {
 class IProject;
@@ -39,6 +40,13 @@ public:
                       *ACTIVE_CONFIGURATION,
                       *ACTIVE_ARCHITECTURE;
 
+    struct CompilerPath
+    {
+        int version;
+        KDevelop::Path path;
+        QString fullName;
+    };
+
     /**
      * Returns true when the given project is sufficiently configured.
      */
@@ -47,28 +55,10 @@ public:
     /**
      * Tries to find visual studio installation directory
      */
-    static QList<QUrl> findMSVC();
+    static QList< CompilerPath > findMSVC();
     
-    /**
-     * Tries to find a devenv.exe for the given MSVC installation.
-     */
-    static QUrl findDevEnvBinary(QUrl const & msvc);
-    
-    /**
-     * Tries to find the MSVC include directory for the given MSVC installation.
-     */
-    static QUrl findMSVCIncludeDir(QUrl const & msvc);
-    
-    /**
-     * Tries to find visual studio SDK installation directory
-     */
-    static QList<QUrl> findWinSDK();
-    
-    /**
-     * Tries to find the SDK C++ include directory
-     */
-    static QList<QUrl> findWinSDKInclude(QUrl const & winSdk);
-    
+private:
+    static QList< CompilerPath > findCompilerPath( const KDevelop::Path & common7path, int version );
 };
 
 #endif //MSVCCONFIG_H
