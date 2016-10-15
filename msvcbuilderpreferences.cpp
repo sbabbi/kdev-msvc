@@ -44,7 +44,7 @@ MsvcBuilderPreferences::MsvcBuilderPreferences(KDevelop::IPlugin* plugin,
     for (auto const & x : compilers )
     {
         const int index = compVersionComboBox->count() - 1;
-        compVersionComboBox->insertItem( index, x.fullName, x.path.toUrl() );
+        compVersionComboBox->insertItem( index, x.fullName, QVariant::fromValue(x.path) );
     }
 
     const int versionComboCount = compVersionComboBox->count();
@@ -79,11 +79,11 @@ void MsvcBuilderPreferences::apply()
 
     const bool customCompilerPath = compVersionComboBox->currentIndex() >= compVersionComboBox->count() - 1;
 
-    QUrl compilerPath = customCompilerPath  ?
-        m_configUi->builder_path->url().toLocalFile() :
-        compVersionComboBox->itemData(compVersionComboBox->currentIndex()).toUrl();
+    KDevelop::Path compilerPath = customCompilerPath  ?
+        KDevelop::Path( m_configUi->builder_path->url() ) :
+        compVersionComboBox->itemData(compVersionComboBox->currentIndex()).value<KDevelop::Path>();
 
-    cg.writeEntry( MsvcConfig::DEVENV_BINARY, compilerPath );
+    cg.writeEntry( MsvcConfig::DEVENV_BINARY, compilerPath.toLocalFile() );
     cg.writeEntry( MsvcConfig::MSVC_INCLUDE, m_configUi->msvc_include->url().toLocalFile() );
     
     //TODO saving currentText is not very pretty...
@@ -97,14 +97,14 @@ void MsvcBuilderPreferences::reset()
     // refresh combobox
     KConfigGroup cg(m_project->projectConfiguration(), MsvcConfig::CONFIG_GROUP);
     
-    QUrl compilerPath (cg.readEntry( MsvcConfig::DEVENV_BINARY, QString() ) );
+    KDevelop::Path compilerPath (cg.readEntry( MsvcConfig::DEVENV_BINARY, QString() ) );
 
     KComboBox * compVersionComboBox = m_configUi->version_combo;
 
     int selectedIndex = compVersionComboBox->count() - 1;
     for ( int i = 0; i < compVersionComboBox->count() - 1; ++i )
     {
-        if ( compVersionComboBox->itemData(i).toUrl() == compilerPath )
+        if ( compVersionComboBox->itemData(i).value<KDevelop::Path>() == compilerPath )
         {
             selectedIndex = i;
             break;
@@ -112,7 +112,7 @@ void MsvcBuilderPreferences::reset()
     }
 
     compVersionComboBox->setCurrentIndex( selectedIndex );
-    m_configUi->builder_path->setUrl( compilerPath );
+    m_configUi->builder_path->setUrl( compilerPath.toUrl() );
     m_configUi->msvc_include->setUrl( cg.readEntry( MsvcConfig::MSVC_INCLUDE, QString() ) );
     m_configUi->config_combo->setCurrentItem( cg.readEntry( MsvcConfig::ACTIVE_CONFIGURATION, QString() ) );
     m_configUi->arch_combo->setCurrentItem( cg.readEntry( MsvcConfig::ACTIVE_ARCHITECTURE, QString() ) );
