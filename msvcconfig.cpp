@@ -43,6 +43,25 @@ bool MsvcConfig::isConfigured(const KDevelop::IProject* project)
     return cg.exists() && cg.hasKey(DEVENV_BINARY) && cg.hasKey(MSVC_INCLUDE) && cg.hasKey(ACTIVE_CONFIGURATION);
 }
 
+void MsvcConfig::guessCompilerIfNotConfigured(const KDevelop::IProject * project)
+{
+    KConfigGroup cg(project->projectConfiguration(), CONFIG_GROUP);
+
+    QString devenv = cg.readEntry( DEVENV_BINARY, QString() );
+
+    if ( !devenv.isEmpty() )
+    {
+        return;
+    }
+
+    auto compilers = findMSVC();
+
+    if ( !compilers.empty() )
+    {
+        cg.writeEntry( DEVENV_BINARY, compilers.front().path.toLocalFile() );
+    }
+}
+
 QList<MsvcConfig::CompilerPath> MsvcConfig::findMSVC()
 {
     // Environment variables to look for

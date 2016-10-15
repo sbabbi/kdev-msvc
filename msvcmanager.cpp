@@ -27,6 +27,7 @@
 #include "debug.h"
 
 #include <QDebug>
+#include <QDir>
 #include <QHash>
 
 #include <KConfigGroup>
@@ -54,10 +55,25 @@ KDevelop::ProjectFolderItem* MsvcProjectManager::import( KDevelop::IProject* pro
     KDevelop::Path path( project->path(),
                          grp.readEntry("CreatedFrom", QString() ) );
 
-#ifdef _WIN32
-    // Append .sln
-    path = KDevelop::Path( path.parent(), path.lastPathSegment() + ".sln" );
-#endif //_WIN32
+    // Might happen on windows
+    if ( ! path.lastPathSegment().endsWith(".sln", Qt::CaseInsensitive) )
+    {
+        if ( !path.isLocalFile() )
+            return nullptr;
+
+        QDir dir ( path.toLocalFile() );
+
+        QFileInfoList files = dir.entryInfoList( QStringList() << "*.sln", QDir::Files);
+
+        if ( files.empty() )
+            return nullptr;
+
+        // FIXME: we just pick the first file here.
+
+        path.setLastPathSegment( files.front().fileName() );
+    }
+
+    MsvcConfig::guessCompilerIfNotConfigured( project );
 
     return new MsvcSolutionItem( project, path );
 }

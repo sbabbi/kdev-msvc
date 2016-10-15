@@ -51,7 +51,9 @@ public:
      * Returns true when the given project is sufficiently configured.
      */
     static bool isConfigured(const KDevelop::IProject* project);
-    
+
+    static void guessCompilerIfNotConfigured(const KDevelop::IProject* project);
+
     /**
      * Tries to find visual studio installation directory
      */
