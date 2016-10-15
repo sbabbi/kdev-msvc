@@ -29,6 +29,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QHash>
+#include <QMessageBox>
 
 #include <KConfigGroup>
 #include <KPluginFactory>
@@ -59,14 +60,22 @@ KDevelop::ProjectFolderItem* MsvcProjectManager::import( KDevelop::IProject* pro
     if ( ! path.lastPathSegment().endsWith(".sln", Qt::CaseInsensitive) )
     {
         if ( !path.isLocalFile() )
+        {
+            QMessageBox::warning(nullptr, "KDEV_MSVC", "Can not open: " + path.toLocalFile() + " because is not a local file");
             return nullptr;
+        }
 
-        QDir dir ( path.toLocalFile() );
+        QDir dir ( path.parent().toLocalFile() );
 
         QFileInfoList files = dir.entryInfoList( QStringList() << "*.sln", QDir::Files);
 
+        qCWarning(KDEV_MSVC) << "Found: " << files.size() << " solution file in the folder";
+
         if ( files.empty() )
+        {
+            QMessageBox::warning(nullptr, "KDEV_MSVC", "No solution files found in: " + dir.path() );
             return nullptr;
+        }
 
         // FIXME: we just pick the first file here.
 
