@@ -97,7 +97,22 @@ void MsvcBuilderPreferences::reset()
     // refresh combobox
     KConfigGroup cg(m_project->projectConfiguration(), MsvcConfig::CONFIG_GROUP);
     
-    m_configUi->builder_path->setUrl( cg.readEntry( MsvcConfig::DEVENV_BINARY, QString() ) );
+    QUrl compilerPath (cg.readEntry( MsvcConfig::DEVENV_BINARY, QString() ) );
+
+    KComboBox * compVersionComboBox = m_configUi->version_combo;
+
+    int selectedIndex = compVersionComboBox->count() - 1;
+    for ( int i = 0; i < compVersionComboBox->count() - 1; ++i )
+    {
+        if ( compVersionComboBox->itemData(i).toUrl() == compilerPath )
+        {
+            selectedIndex = i;
+            break;
+        }
+    }
+
+    compVersionComboBox->setCurrentIndex( selectedIndex );
+    m_configUi->builder_path->setUrl( compilerPath );
     m_configUi->msvc_include->setUrl( cg.readEntry( MsvcConfig::MSVC_INCLUDE, QString() ) );
     m_configUi->config_combo->setCurrentItem( cg.readEntry( MsvcConfig::ACTIVE_CONFIGURATION, QString() ) );
     m_configUi->arch_combo->setCurrentItem( cg.readEntry( MsvcConfig::ACTIVE_ARCHITECTURE, QString() ) );
