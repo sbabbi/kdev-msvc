@@ -68,7 +68,7 @@ QUrl MsvcExecutableTargetItem::builtUrl() const
 MsvcProjectItem::MsvcProjectItem( KDevelop::IProject* project,
                                    const KDevelop::Path& path,
                                    KDevelop::ProjectBaseItem* parent ) :
-    KDevelop::ProjectFolderItem( project, path, parent )
+    KDevelop::ProjectBuildFolderItem( project, path, parent )
 {
     setText( path.lastPathSegment().section('.', 0, -2) );
 }

@@ -34,7 +34,7 @@ KJob * MsvcBuilder::clean(KDevelop::ProjectBaseItem* item)
 
 DevEnvJob* MsvcBuilder::runDevEnv(KDevelop::ProjectBaseItem  * item, DevEnvJob::CommandType type)
 {
-    if ( MsvcSolutionItem * solItem = dynamic_cast<MsvcSolutionItem*>(item) )
+    if ( KDevelop::ProjectBuildFolderItem * solItem = dynamic_cast<KDevelop::ProjectBuildFolderItem*>(item) )
     {
         DevEnvJob * job = new DevEnvJob(nullptr, solItem, type );
         job->setAutoDelete(true);

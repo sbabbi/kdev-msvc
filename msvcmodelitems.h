@@ -56,7 +56,7 @@ public:
 private:    
 };
 
-class MsvcProjectItem : public KDevelop::ProjectFolderItem
+class MsvcProjectItem : public KDevelop::ProjectBuildFolderItem
 {
 public:
     MsvcProjectItem( KDevelop::IProject* , 

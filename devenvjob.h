@@ -35,7 +35,7 @@ public:
         CleanCommand
     };
 
-    DevEnvJob( QObject* parent, MsvcSolutionItem* item, CommandType command );
+    DevEnvJob( QObject* parent, KDevelop::ProjectBuildFolderItem* item, CommandType command );
 
     void start() override;
 
@@ -43,7 +43,7 @@ public:
     QStringList commandLine() const override;
 
 private:   
-    MsvcSolutionItem * m_item;
+    KDevelop::ProjectBuildFolderItem * m_item;
     CommandType m_command;
 };
 

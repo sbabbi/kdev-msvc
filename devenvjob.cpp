@@ -32,7 +32,7 @@
 #include <project/interfaces/ibuildsystemmanager.h>
 #include <outputview/ioutputview.h>
 
-DevEnvJob::DevEnvJob(QObject* parent, MsvcSolutionItem* item, CommandType command ) :
+DevEnvJob::DevEnvJob(QObject* parent, KDevelop::ProjectBuildFolderItem * item, CommandType command ) :
     KDevelop::OutputExecuteJob(parent),
     m_item(item),
     m_command(command)
@@ -75,6 +75,7 @@ QStringList DevEnvJob::commandLine() const
         return {};
     }
     
+    // Note: this command line seems to work with both .sln and .vcproj
     QStringList result;
     result << builder;
     
