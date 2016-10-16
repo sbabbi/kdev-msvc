@@ -24,6 +24,7 @@
 #include "msvcconfig.h"
 
 #include <QFileInfo>
+#include <QRegularExpression>
 
 #include <KConfigGroup>
 #include <KLocalizedString>
@@ -31,6 +32,43 @@
 #include <interfaces/iproject.h>
 #include <project/interfaces/ibuildsystemmanager.h>
 #include <outputview/ioutputview.h>
+#include <outputview/outputfilteringstrategies.h>
+#include <outputview/filtereditem.h>
+
+// Devenv prepends "[number]>" to every line, but the CompilerFilterStrategy does not understand it.
+static const QRegularExpression matchDevEnvTaskId( R"(^(\d+>).*$)" );
+
+class DevEnvCompilerFilterStrategy : public KDevelop::CompilerFilterStrategy
+{
+public:
+    DevEnvCompilerFilterStrategy(const QUrl& buildDir) :
+        KDevelop::CompilerFilterStrategy(buildDir)
+    {}
+
+    virtual KDevelop::FilteredItem errorInLine(const QString& line) override
+    {
+        return KDevelop::CompilerFilterStrategy::errorInLine( filterLine(line) );
+    }
+
+    virtual KDevelop::FilteredItem actionInLine(const QString& line) override
+    {
+        return KDevelop::CompilerFilterStrategy::actionInLine( filterLine(line) );
+    }
+
+private:
+    QString filterLine( const QString & line ) const
+    {
+        QRegularExpressionMatch match = matchDevEnvTaskId.match(line);
+
+        if ( match.hasMatch() )
+        {
+            const int length = match.capturedLength(1);
+            QString result = line;
+            return result.remove(0, length);
+        }
+        return line;
+    }
+};
 
 DevEnvJob::DevEnvJob(QObject* parent, KDevelop::ProjectBuildFolderItem * item, CommandType command ) :
     KDevelop::OutputExecuteJob(parent),
@@ -41,17 +79,17 @@ DevEnvJob::DevEnvJob(QObject* parent, KDevelop::ProjectBuildFolderItem * item, C
     auto buildDir = bsm->buildDirectory(item);
 
     setCapabilities( Killable );
+    setFilteringStrategy( new DevEnvCompilerFilterStrategy( workingDirectory() ) );
     setProperties( PortableMessages | DisplayStderr | IsBuilderHint );
+    setToolTitle( i18n("DevEnv") );
+    setStandardToolView( KDevelop::IOutputView::BuildView );
+    setBehaviours(KDevelop::IOutputView::AllowUserClose | KDevelop::IOutputView::AutoScroll );
 
     setJobName( i18n("Build (%1)", item->text() ) );
-    setToolTitle( i18n("DevEnv") );
 }
 
 void DevEnvJob::start()
 {
-    setStandardToolView(KDevelop::IOutputView::BuildView);
-    setBehaviours(KDevelop::IOutputView::AllowUserClose | KDevelop::IOutputView::AutoScroll);
-
     OutputExecuteJob::start();
 }
 
