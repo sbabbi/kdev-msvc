@@ -59,68 +59,22 @@ MsvcProjectParser * CreateProjectParser( KDevelop::Path const & path, KDevelop::
 }
 }
 
-MsvcImportJob::MsvcImportJob(KDevelop::Path const & path, KDevelop::IProject * project) :
-    m_parser( CreateProjectParser(path, project) ),
-    m_futureWatcher(new QFutureWatcher<MsvcProjectItem*>(this))
-{
-    connect(m_futureWatcher, &QFutureWatcher<void>::finished,
-            this, &MsvcImportJob::emitResult );
-
-    setCapabilities(KJob::Killable);
-    setObjectName(i18n("Parsing: %1", path.lastPathSegment()) );
-    
-    connect(KDevelop::ICore::self(), &KDevelop::ICore::aboutToShutdown,
-            this, &MsvcImportJob::aboutToShutdown );
-
-    if (m_parser)
-    {
-        m_parser->setAutoDelete(false);
-        m_futureWatcher->setFuture(m_parser->getFuture());
-    }
-
-}
-
-MsvcImportJob::~MsvcImportJob()
-{
-    delete m_parser;
-}
-
-void MsvcImportJob::start()
-{
-    if ( m_parser )
-    {
-        QThreadPool::globalInstance()->start( m_parser );
-    }
-}
-
-bool MsvcImportJob::doKill()
-{
-    m_futureWatcher->cancel();
-
-    setError(1);
-    setErrorText(i18n("Project import canceled."));
-
-    m_futureWatcher->waitForFinished();
-    
-    return true;
-}
-
-void MsvcImportJob::aboutToShutdown()
-{
-    kill();
-}
-
 MsvcImportSolutionJob::MsvcImportSolutionJob(MsvcSolutionItem* dom) :
     m_dom(dom),
     m_solutionPath(dom->path()),
-    m_futureWatcher(new QFutureWatcher<void>(this)),
-    m_finished(false)
+    m_futureWatcher(new QFutureWatcher<void>(this))
 {
     connect(m_futureWatcher, &QFutureWatcher<void>::finished,
-            this, &MsvcImportSolutionJob::reconsider );
+            this, [this]() { emitResult(); } );
     
     setCapabilities(KJob::Killable);
     setObjectName(i18n("Solution Import: %1", m_dom->project()->name()));
+}
+
+MsvcImportSolutionJob::~MsvcImportSolutionJob()
+{
+    m_futureWatcher->cancel();
+    m_futureWatcher->waitForFinished();
 }
 
 void MsvcImportSolutionJob::start()
@@ -129,38 +83,29 @@ void MsvcImportSolutionJob::start()
     m_futureWatcher->setFuture(future);
 }
 
-void MsvcImportSolutionJob::slotResult(KJob * job)
-{
-    KCompositeJob::slotResult(job);
-    reconsider();
-}
-
 bool MsvcImportSolutionJob::doKill()
 {
-    QList<KJob*> jobs = subjobs();
+    m_futureWatcher->cancel();
+    m_futureWatcher->waitForFinished();
     
-    // Try to kill them all!
-    auto zombies_start = std::partition( jobs.begin(), jobs.end(), [](KJob* j) { return j->kill(); } );
-    
-    // Remove the ones that we actually killed
-    std::for_each( jobs.begin(), zombies_start, [&](KJob* j) { removeSubjob(j); } );
-    
-    // If no zombies left, report success.
-    return zombies_start == jobs.end();
+    return true;
 }
 
-void MsvcImportSolutionJob::addProject(const QString & relativePath)
+void MsvcImportSolutionJob::parseProject(const QString & relativePath)
 {
-    MsvcImportJob * job = new MsvcImportJob( KDevelop::Path(m_solutionPath.parent(), relativePath), m_dom->project() );
-    addSubjob(job);
-    job->start();
+    const KDevelop::Path path (m_solutionPath.parent(), relativePath);
+    QScopedPointer< MsvcProjectParser > parser( CreateProjectParser( path, m_dom->project() ) );
     
-    using WatcherType = QFutureWatcher<MsvcProjectItem*>;
+    // Although MsvcProjectParser can work asynchronously, I could not figure out
+    // how to protect access to IProject. Run it synchrnously for now.
+    parser->run();
     
-    WatcherType * watcher = job->futureWatcher();
+    auto future =  parser->getFuture();
     
-    connect( watcher, static_cast< void (QFutureWatcherBase::*)(int) > (&QFutureWatcherBase::resultReadyAt),
-             this, [this, watcher](int index) { m_dom->appendRow( watcher->resultAt(index) ); } );
+    if ( future.isResultReadyAt(0) )
+    {
+        m_dom->appendRow( future.result() );
+    }
 }
 
 void MsvcImportSolutionJob::run()
@@ -224,10 +169,7 @@ void MsvcImportSolutionJob::run()
 
             qCDebug(KDEV_MSVC) << "About to parse project file: " << projectPath;
 
-            QMetaObject::invokeMethod(this,
-                                      "addProject", 
-                                      Qt::QueuedConnection,
-                                      Q_ARG(QString, projectPath.replace('\\','/') ) );
+            parseProject( projectPath.replace('\\','/') );
         }
         else if ( line.trimmed().startsWith(globStart) )
         {
@@ -259,16 +201,5 @@ void MsvcImportSolutionJob::run()
             }
         }
         // else skip line
-    }
-    
-    m_finished = true;
-}
-
-void MsvcImportSolutionJob::reconsider()
-{
-    if ( m_finished && subjobs().isEmpty() )
-    {
-        m_finished = false;
-        emitResult();
     }
 }

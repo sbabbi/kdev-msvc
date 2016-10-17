@@ -41,53 +41,27 @@ class ProjectFolderItem;
 class IProject;
 }
 
-class MsvcImportJob : public KJob
-{
-    Q_OBJECT
-public:
-    explicit MsvcImportJob( KDevelop::Path const & dom, KDevelop::IProject * project );
-    ~MsvcImportJob();
-
-    void start() override;
-
-    QFutureWatcher<MsvcProjectItem*> * futureWatcher() const { return m_futureWatcher; }
-
-protected:
-    bool doKill() override;
-
-private slots:
-    void aboutToShutdown();
-
-private:
-    MsvcProjectParser * m_parser;
-    QFutureWatcher<MsvcProjectItem*> * m_futureWatcher;
-};
-
-class MsvcImportSolutionJob : public KCompositeJob
+class MsvcImportSolutionJob : public KJob
 {
     Q_OBJECT
 public:
     explicit MsvcImportSolutionJob(MsvcSolutionItem* dom);
+    ~MsvcImportSolutionJob();
     
     void start() override;
 
 protected:
-    void slotResult(KJob*) override;
     bool doKill() override;
 
-private slots:
-    void addProject( const QString & relativePath );
+private:
+    void parseProject( const QString & relativePath );
 
 private:
-    //BUG likely data races everywhere
-    //TODO make it cancellable
     void run();
-    void reconsider();
 
     MsvcSolutionItem * m_dom;
     KDevelop::Path m_solutionPath;
     QFutureWatcher<void> * m_futureWatcher;
-    bool m_finished;
 };
 
 
