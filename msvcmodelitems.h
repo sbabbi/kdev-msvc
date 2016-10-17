@@ -104,16 +104,27 @@ public:
     
     void setCurrentConfig(QString const & name);
     
+    void addConfiguration(QString const & nameAndArch)
+    {
+        config_map_.insert( nameAndArch, {} );
+    }
+
     void addProjectConfig(QString const & mainCfg,
                           QUuid const & project,
                           QString const & projectCfg)
     {
-        config_map_[ mainCfg ][project] = projectCfg;
+        auto it = config_map_.find( mainCfg );
+        if ( it != config_map_.end() )
+        {
+            (*it)[project] = projectCfg;
+        }
     }
+
+    QList<QString> getConfigurations() const { return config_map_.keys(); }
 
 private:
     MsvcProjectItem* findProjectByUuid(const QUuid &) const;
-    
+
     QHash< QString, QHash<QUuid, QString> > config_map_;
 };
 

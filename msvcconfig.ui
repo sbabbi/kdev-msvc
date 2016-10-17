@@ -67,18 +67,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="KComboBox" name="config_combo">
-        <item>
-         <property name="text">
-          <string>Debug</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Release</string>
-         </property>
-        </item>
-       </widget>
+       <widget class="KComboBox" name="config_combo"/>
       </item>
       <item row="4" column="0">
        <widget class="KSqueezedTextLabel" name="ksqueezedtextlabel_3">
@@ -88,18 +77,7 @@
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="KComboBox" name="arch_combo">
-        <item>
-         <property name="text">
-          <string>Win32</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>x64</string>
-         </property>
-        </item>
-       </widget>
+       <widget class="KComboBox" name="arch_combo"/>
       </item>
      </layout>
     </widget>

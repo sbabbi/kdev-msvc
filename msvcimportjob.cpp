@@ -172,13 +172,14 @@ void MsvcImportSolutionJob::run()
     
     QString line; 
     
+    // TODO split this mess into multiple functions in a class.
     while ( line = file.readLine(), !file.atEnd() )
     {
         const QString projectStartTag = "Project";
         const QString projectEndTag = "EndProject";
         
-        const QString globSectStart = "GlobalSection(ProjectConfigurationPlatforms) = postSolution";
-        const QString globSectEnd = "EndGlobalSection";
+        const QString globStart = "Global";
+        const QString globEnd = "EndGlobal";
         
         if ( line.trimmed().startsWith(projectStartTag) )
         {
@@ -197,31 +198,62 @@ void MsvcImportSolutionJob::run()
                 "\\s*,\\s*"
                     R"X("({[A-F0-9\-]+})")X"
                 "\\s*");
-            
+
             QRegularExpressionMatch result = regex.match( line );
-            
-            QString nextLine = file.readLine();
-            
-            if ( !result.isValid() || !nextLine.startsWith("EndProject") )
-                continue;
+
+            if (! result.isValid() )
+            {
+                continue; // Ignore stuff we do not know about
+            }
+
+            QString nextLine;
+
+            // Skip dependency description and other amenities..
+            do
+            {
+                nextLine = file.readLine();
+            }
+            while ( !(file.error() || file.atEnd() || nextLine.startsWith("EndProject") ) );
 
 //             QUuid _ = result.captured(1);
             QString projectName = result.captured(2);
             QString projectPath = result.captured(3);
 //             QUuid projectUUID = result.captured(4);
-            
+
             qCDebug(KDEV_MSVC) << "About to parse project file: " << projectPath;
-           
+
             QMetaObject::invokeMethod(this,
                                       "addProject", 
                                       Qt::QueuedConnection,
                                       Q_ARG(QString, projectPath.replace('\\','/') ) );
         }
-        else if ( line.trimmed().startsWith(globSectStart) )
+        else if ( line.trimmed().startsWith(globStart) )
         {
-            while ( line = file.readLine(), !(file.atEnd() || line.trimmed().startsWith(globSectEnd) ) )
+            while ( line = file.readLine(), !(file.error() || file.atEnd() || line.trimmed().startsWith(globEnd) ) )
             {
-                //TODO implement
+                const QRegularExpression globalSectionStart (R"(GlobalSection\s*\(([a-zA-Z]+)\)\s*=\s*([a-zA-Z]+))");
+                const QString globalSectionEnd = "EndGlobalSection";
+
+                QRegularExpressionMatch result = globalSectionStart.match( line.trimmed() );
+
+                if ( !result.isValid() )
+                    continue;
+
+                if ( result.captured(1) == "SolutionConfigurationPlatforms" && 
+                     result.captured(2) == "preSolution" )
+                {
+                    while ( line = file.readLine(), !(file.error() || file.atEnd() || line.startsWith(globalSectionEnd) ) )
+                    {
+                        const QRegularExpression configRegex (R"(([a-zA-Z0-9_]+\|[a-zA-Z0-9_]+)\s*=\s*[a-zA-Z0-9_]+\|[a-zA-Z0-9_]+)");
+
+                        QRegularExpressionMatch cfgMatch = configRegex.match( line.trimmed() );
+
+                        if ( cfgMatch.isValid() )
+                        {
+                            m_dom->addConfiguration( cfgMatch.captured(1) );
+                        }
+                    }
+                }
             }
         }
         // else skip line

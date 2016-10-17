@@ -41,6 +41,9 @@ public slots:
     void apply() override;
     void reset() override;
     QString name() const override;
+    
+private slots:
+    void onConfigurationChanged(QString const &);
 
 private:
     KDevelop::IProject* m_project;

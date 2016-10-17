@@ -20,10 +20,12 @@
 
 
 #include "msvcbuilderpreferences.h"
-
 #include "msvcconfig.h"
+#include "msvcmodelitems.h"
 #include "debug.h"
 #include "ui_msvcconfig.h"
+
+#include <algorithm>
 
 #include <KLocalizedString>
 
@@ -61,8 +63,24 @@ MsvcBuilderPreferences::MsvcBuilderPreferences(KDevelop::IPlugin* plugin,
 
     showHideCustomCompPath( versionComboCount > 1);
 
+    // Fill configuration combo box
+    if ( MsvcSolutionItem * solItem = dynamic_cast<MsvcSolutionItem*>(m_project->projectItem()) )
+    {
+        QList<QString> configs = solItem->getConfigurations();
+        for ( QString & x : configs )
+            x = x.split('|').value(0);
+        std::sort( configs.begin(), configs.end() );
+        auto last = std::unique(configs.begin(), configs.end());
+
+        for ( auto iter = configs.begin(); iter != last; ++ iter)
+            m_configUi->config_combo->addItem( *iter );
+    }
+
     connect(compVersionComboBox, static_cast<void (QComboBox::*)(int)>( &KComboBox::currentIndexChanged ),
             this, showHideCustomCompPath);
+
+    connect(m_configUi->config_combo, static_cast<void (QComboBox::*)(const QString &)>( &KComboBox::currentIndexChanged ),
+            this, &MsvcBuilderPreferences::onConfigurationChanged );
 }
 
 MsvcBuilderPreferences::~MsvcBuilderPreferences()
@@ -122,3 +140,28 @@ QString MsvcBuilderPreferences::name() const
 {
     return i18n("MSVC");
 }
+
+void MsvcBuilderPreferences::onConfigurationChanged(QString const & cfg)
+{
+    MsvcSolutionItem * solItem = dynamic_cast<MsvcSolutionItem*>(m_project->projectItem());
+
+    if (!solItem)
+        return;
+
+    QList<QString> configs = solItem->getConfigurations();
+
+    auto last =  std::remove_if( configs.begin(),
+                                 configs.end(),
+                                 [&cfg](const QString & name) { return !name.startsWith(cfg+"|"); } );
+
+    QComboBox * archCombo = m_configUi->arch_combo;
+
+    // Clean it up
+    archCombo->clear();
+
+    for ( auto iter = configs.begin(); iter != last; ++ iter )
+    {
+        archCombo->addItem( iter->split('|').at(1) );
+    }
+}
+
