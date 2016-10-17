@@ -73,7 +73,8 @@ void MsvcProjectParser::run()
     
     QXmlStreamReader reader(&file);
     
-    if (!parse( reader ) )
+    auto result = parse(reader);
+    if (!result)
     {
         m_promise.reportCanceled();
         m_promise.reportFinished();
@@ -81,22 +82,25 @@ void MsvcProjectParser::run()
     }
 
     // Add the project file itself
-    new KDevelop::ProjectFileItem( m_proj->project(), projectPath(), m_proj );
+    new KDevelop::ProjectFileItem( result->project(), projectPath(), result.get() );
     
+    m_promise.reportResult( result.release() );
     m_promise.reportFinished();
 }
 
-bool MsvcVcProjParser::parse(QXmlStreamReader & reader)
+std::unique_ptr< MsvcProjectItem > MsvcVcProjParser::parse(QXmlStreamReader & reader)
 {
+    std::unique_ptr< MsvcProjectItem > result( new MsvcProjectItem(project(), projectPath() ) );
+
     for ( ;reader.readNextStartElement(); reader.skipCurrentElement() )
     {
         if ( reader.name().compare("VisualStudioProject", Qt::CaseInsensitive) == 0 )
         {
-            parseVisualStudioProject(reader);
+            parseVisualStudioProject(reader, result.get());
         }
     }
     
-    return true;
+    return result;
 }
 
 void MsvcVcProjParser::parseFileList(KDevelop::ProjectBaseItem* parent, QXmlStreamReader& reader) const
@@ -127,12 +131,10 @@ void MsvcVcProjParser::parseFileList(KDevelop::ProjectBaseItem* parent, QXmlStre
     }
 }
 
-void MsvcVcProjParser::parseVisualStudioProject(QXmlStreamReader& reader)
+void MsvcVcProjParser::parseVisualStudioProject(QXmlStreamReader& reader, MsvcProjectItem * proj)
 {
     QString projectName = reader.attributes().value("Name").toString();
     QUuid projectUuid = reader.attributes().value("ProjectGUID").toString();
-    
-    MsvcProjectItem * proj = projectItem();
     
     proj->rename( projectName );
     proj->setUuid( projectUuid );
@@ -186,8 +188,10 @@ void MsvcVcProjParser::parseVisualStudioProject(QXmlStreamReader& reader)
     }
 }
 
-bool MsvcVcxProjParser::parse( QXmlStreamReader & )
+std::unique_ptr< MsvcProjectItem > MsvcVcxProjParser::parse( QXmlStreamReader & )
 {
+    std::unique_ptr< MsvcProjectItem > result( new MsvcProjectItem(project(), projectPath() ) );
+
     // For now, completely ignore the vcxproj, focus on the filter file
     KDevelop::Path filterFileName = projectPath();
     filterFileName.setLastPathSegment( filterFileName.lastPathSegment() + ".filters" );
@@ -207,12 +211,12 @@ bool MsvcVcxProjParser::parse( QXmlStreamReader & )
     
     qCDebug(KDEV_MSVC) << "Parsing filter file: " << filterFile.fileName();
     QXmlStreamReader filterReader( &filterFile );
-    parseFilterFile( filterReader );
+    parseFilterFile( filterReader, result.get() );
     
-    return true;
+    return result;
 }
 
-void MsvcVcxProjParser::parseFilterFile(QXmlStreamReader & reader)
+void MsvcVcxProjParser::parseFilterFile(QXmlStreamReader & reader, MsvcProjectItem * result)
 {
     while ( reader.readNextStartElement() )
     {
@@ -222,7 +226,7 @@ void MsvcVcxProjParser::parseFilterFile(QXmlStreamReader & reader)
             {
                 if ( reader.name() == "ItemGroup" )
                 {
-                    parseItemGroup( reader );
+                    parseItemGroup( reader, result );
                 }
             }
         }
@@ -233,10 +237,8 @@ void MsvcVcxProjParser::parseFilterFile(QXmlStreamReader & reader)
     }
 }
 
-void MsvcVcxProjParser::parseItemGroup(QXmlStreamReader & reader)
+void MsvcVcxProjParser::parseItemGroup(QXmlStreamReader & reader, MsvcProjectItem * proj)
 {
-    MsvcProjectItem * proj = projectItem();
-
     while ( reader.readNextStartElement() )
     {
         if ( reader.name() == "Filter" )
@@ -294,3 +296,4 @@ void MsvcVcxProjParser::parseItemGroup(QXmlStreamReader & reader)
         }
     }
 }
+

@@ -41,17 +41,15 @@
 
 namespace
 {
-MsvcProjectParser * CreateProjectParser(MsvcProjectItem* dom)
+MsvcProjectParser * CreateProjectParser( KDevelop::Path const & path, KDevelop::IProject * project)
 {
-    const KDevelop::Path & path = dom->path();
-
     if ( path.lastPathSegment().endsWith(".vcproj", Qt::CaseInsensitive) )
     {
-        return new MsvcVcProjParser(dom);
+        return new MsvcVcProjParser(path, project);
     }
     else if ( path.lastPathSegment().endsWith(".vcxproj", Qt::CaseInsensitive) )
     {
-        return new MsvcVcxProjParser(dom);
+        return new MsvcVcxProjParser(path, project);
     }
     else
     {
@@ -61,15 +59,15 @@ MsvcProjectParser * CreateProjectParser(MsvcProjectItem* dom)
 }
 }
 
-MsvcImportJob::MsvcImportJob(MsvcProjectItem* dom) :
-    m_parser( CreateProjectParser(dom) ),
-    m_futureWatcher(new QFutureWatcher<void>(this))
+MsvcImportJob::MsvcImportJob(KDevelop::Path const & path, KDevelop::IProject * project) :
+    m_parser( CreateProjectParser(path, project) ),
+    m_futureWatcher(new QFutureWatcher<MsvcProjectItem*>(this))
 {
     connect(m_futureWatcher, &QFutureWatcher<void>::finished,
             this, &MsvcImportJob::emitResult );
 
     setCapabilities(KJob::Killable);
-    setObjectName(i18n("Project Import: %1", dom->project()->name()));
+    setObjectName(i18n("Parsing: %1", path.lastPathSegment()) );
     
     connect(KDevelop::ICore::self(), &KDevelop::ICore::aboutToShutdown,
             this, &MsvcImportJob::aboutToShutdown );
@@ -153,12 +151,16 @@ bool MsvcImportSolutionJob::doKill()
 
 void MsvcImportSolutionJob::addProject(const QString & relativePath)
 {
-    MsvcProjectItem * result = new MsvcProjectItem( m_dom->project(),
-                                                    KDevelop::Path(m_solutionPath.parent(), relativePath),
-                                                    m_dom );
-    KJob * job = new MsvcImportJob( result );
+    MsvcImportJob * job = new MsvcImportJob( KDevelop::Path(m_solutionPath.parent(), relativePath), m_dom->project() );
     addSubjob(job);
     job->start();
+    
+    using WatcherType = QFutureWatcher<MsvcProjectItem*>;
+    
+    WatcherType * watcher = job->futureWatcher();
+    
+    connect( watcher, static_cast< void (QFutureWatcherBase::*)(int) > (&QFutureWatcherBase::resultReadyAt),
+             this, [this, watcher](int index) { m_dom->appendRow( watcher->resultAt(index) ); } );
 }
 
 void MsvcImportSolutionJob::run()

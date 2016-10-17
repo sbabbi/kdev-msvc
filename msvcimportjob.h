@@ -38,16 +38,19 @@ namespace KDevelop
 {
 class ProjectBaseItem;
 class ProjectFolderItem;
+class IProject;
 }
 
 class MsvcImportJob : public KJob
 {
     Q_OBJECT
 public:
-    explicit MsvcImportJob( MsvcProjectItem * dom);
+    explicit MsvcImportJob( KDevelop::Path const & dom, KDevelop::IProject * project );
     ~MsvcImportJob();
 
     void start() override;
+
+    QFutureWatcher<MsvcProjectItem*> * futureWatcher() const { return m_futureWatcher; }
 
 protected:
     bool doKill() override;
@@ -57,7 +60,7 @@ private slots:
 
 private:
     MsvcProjectParser * m_parser;
-    QFutureWatcher<void> * m_futureWatcher;
+    QFutureWatcher<MsvcProjectItem*> * m_futureWatcher;
 };
 
 class MsvcImportSolutionJob : public KCompositeJob

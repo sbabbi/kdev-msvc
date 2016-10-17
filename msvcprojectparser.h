@@ -25,6 +25,8 @@
 #include <QFutureInterface>
 #include <QRunnable>
 
+#include <memory>
+
 #include "msvcmodelitems.h"
 
 class QXmlStreamReader;
@@ -35,26 +37,29 @@ class QXmlStreamReader;
 class MsvcProjectParser : public QRunnable
 {
 public:
-    explicit MsvcProjectParser ( MsvcProjectItem * proj ) :
-        m_proj(proj)
+    explicit MsvcProjectParser ( KDevelop::Path const & projPath, KDevelop::IProject * project ) :
+        m_projectPath(projPath),
+        m_project(project)
     {
     }
 
     virtual void run() override final;
     
-    QFuture<void> getFuture() { return m_promise.future(); }
+    // Must take ownership of the returned object!
+    QFuture< MsvcProjectItem * > getFuture() { return m_promise.future(); }
 
 protected:
-    virtual bool parse( QXmlStreamReader & ) = 0;
+    virtual std::unique_ptr< MsvcProjectItem > parse( QXmlStreamReader & ) = 0;
 
     bool isCanceled() const { return m_promise.isCanceled(); }
     
-    MsvcProjectItem * projectItem() const { return m_proj; }
-    KDevelop::Path projectPath() const { return m_proj->path(); }
+    KDevelop::Path projectPath() const { return m_projectPath; }
+    KDevelop::IProject* project() const { return m_project; }
 
 private:
-    QFutureInterface<void> m_promise;
-    MsvcProjectItem * m_proj;
+    KDevelop::Path m_projectPath;
+    QFutureInterface< MsvcProjectItem * > m_promise;
+    KDevelop::IProject * m_project;
 };
 
 /**
@@ -63,13 +68,13 @@ private:
 class MsvcVcProjParser : public MsvcProjectParser
 {
 public:
-    explicit MsvcVcProjParser ( MsvcProjectItem * proj ) :
-        MsvcProjectParser( proj )
+    explicit MsvcVcProjParser ( KDevelop::Path const & projPath, KDevelop::IProject * project ) :
+        MsvcProjectParser( projPath, project )
     {
     }
 
 private:
-    virtual bool parse( QXmlStreamReader & ) override;
+    virtual std::unique_ptr< MsvcProjectItem > parse( QXmlStreamReader & ) override;
 
     /**
      * @brief parse a \<Files\> tag.
@@ -80,7 +85,7 @@ private:
     /**
      * @brief parse a \<VisualStudioProject\> tag
      */
-    void parseVisualStudioProject(QXmlStreamReader& reader);
+    void parseVisualStudioProject(QXmlStreamReader& reader, MsvcProjectItem * proj);
 };
 
 /**
@@ -89,16 +94,16 @@ private:
 class MsvcVcxProjParser : public MsvcProjectParser
 {
 public:
-    explicit MsvcVcxProjParser ( MsvcProjectItem * proj ) :
-        MsvcProjectParser( proj )
+    explicit MsvcVcxProjParser ( KDevelop::Path const & projPath, KDevelop::IProject * project ) :
+        MsvcProjectParser( projPath, project )
     {
     }
 
 private:
-    virtual bool parse( QXmlStreamReader & ) override;
+    virtual std::unique_ptr< MsvcProjectItem > parse( QXmlStreamReader & ) override;
     
-    void parseFilterFile( QXmlStreamReader & );
-    void parseItemGroup( QXmlStreamReader & );
+    void parseFilterFile( QXmlStreamReader &, MsvcProjectItem * );
+    void parseItemGroup( QXmlStreamReader &, MsvcProjectItem * );
     
 };
 

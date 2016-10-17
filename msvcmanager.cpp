@@ -163,9 +163,7 @@ QHash<QString,QString> MsvcProjectManager::defines(KDevelop::ProjectBaseItem* it
 
 bool MsvcProjectManager::hasIncludesOrDefines(KDevelop::ProjectBaseItem* item) const
 {
-    if ( dynamic_cast<MsvcProjectItem*>(item) )
-        return true;
-    return false;
+    return true;
 }
 
 int MsvcProjectManager::perProjectConfigPages() const
