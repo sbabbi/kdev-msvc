@@ -192,27 +192,27 @@ QString MsvcVariableReplacer::getReplacement( QString const & key, KDevelop::Pro
 
 QString MsvcVariableReplacer::visit(QString const & key, KDevelop::ProjectBaseItem const  * item)
 {
-    if ( key == "InputDir" )
+    if ( key.compare("InputDir", Qt::CaseInsensitive) == 0 )
     {
         return item->path().parent().toLocalFile() + '\\';
     }
-    else if ( key == "InputPath" )
+    else if ( key.compare("InputPath", Qt::CaseInsensitive) == 0 )
     {
         return item->path().toLocalFile();
     }
-    else if ( key == "InputName" )
+    else if ( key.compare("InputName", Qt::CaseInsensitive) == 0 )
     {
         return item->baseName();
     }
-    else if ( key == "InputFileName" )
+    else if ( key.compare("InputFileName", Qt::CaseInsensitive) == 0 )
     {
         return item->path().lastPathSegment();
     }
-    else if ( key == "InputExt" )
+    else if ( key.compare("InputExt", Qt::CaseInsensitive) == 0 )
     {
         return "." + item->path().lastPathSegment().section('.', -2, -1);
     }
-    else if ( key == "ParentName" )
+    else if ( key.compare("ParentName", Qt::CaseInsensitive) == 0 )
     {
         KDevelop::ProjectBaseItem * parent = item->parent();
         return parent ? parent->text() : QString();
@@ -224,27 +224,31 @@ QString MsvcVariableReplacer::visit(QString const & key, KDevelop::ProjectBaseIt
 
 QString MsvcVariableReplacer::visit( QString const & key, MsvcProjectItem const * item )
 {
-    if ( key == "ProjectDir" )
+    if ( key.compare( "RootNameSpace", Qt::CaseInsensitive) == 0 )
+    {
+        return item->rootNamespace();
+    }
+    if ( key.compare( "ProjectDir", Qt::CaseInsensitive) == 0 )
     {
         return visit( "InputDir", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "ProjectPath" )
+    else if ( key.compare( "ProjectPath", Qt::CaseInsensitive ) == 0 )
     {
         return visit( "InputPath", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "ProjectName" )
+    else if ( key.compare("ProjectName", Qt::CaseInsensitive) == 0 )
     {
         return visit( "InputName", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "ProjectFileName" )
+    else if ( key.compare("ProjectFileName", Qt::CaseInsensitive) == 0 )
     {
         return visit( "InputFileName", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "ProjectExt" )
+    else if ( key.compare("ProjectExt", Qt::CaseInsensitive) == 0 )
     {
         return visit( "InputExt", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "TargetDir" )
+    else if ( key.compare("TargetDir", Qt::CaseInsensitive) == 0 )
     {
         recursionChecker checker( replace_target_dir_guard_ );
         
@@ -253,7 +257,7 @@ QString MsvcVariableReplacer::visit( QString const & key, MsvcProjectItem const 
 
         return replace( item->getCurrentConfig().outputDirectory + "\\", item );
     }
-    else if ( key == "TargetPath" )
+    else if ( key.compare("TargetPath", Qt::CaseInsensitive) == 0 )
     {
         recursionChecker checker( replace_target_path_guard_ );
         
@@ -263,7 +267,7 @@ QString MsvcVariableReplacer::visit( QString const & key, MsvcProjectItem const 
         return visit("TargetDir", item) + 
                 replace( item->getCurrentConfig().outputFile, item );
     }
-    else if ( key == "TargetName" )
+    else if ( key.compare("TargetName", Qt::CaseInsensitive) == 0 )
     {
         recursionChecker checker( replace_target_name_guard_ );
         
@@ -272,7 +276,7 @@ QString MsvcVariableReplacer::visit( QString const & key, MsvcProjectItem const 
 
         return replace( item->getCurrentConfig().outputFile, item ).section('.', 0, -2);
     }
-    else if ( key == "TargetFileName" )
+    else if ( key.compare("TargetFileName", Qt::CaseInsensitive) == 0 )
     {
         recursionChecker checker( replace_target_file_name_guard_ );
         
@@ -281,7 +285,7 @@ QString MsvcVariableReplacer::visit( QString const & key, MsvcProjectItem const 
 
         return replace( item->getCurrentConfig().outputFile, item );
     }
-    else if ( key == "TargetExt" )
+    else if ( key.compare("TargetExt", Qt::CaseInsensitive) == 0 )
     {
         recursionChecker checker( replace_target_ext_guard_ );
         
@@ -297,23 +301,23 @@ QString MsvcVariableReplacer::visit( QString const & key, MsvcProjectItem const 
 
 QString MsvcVariableReplacer::visit( QString const & key, MsvcSolutionItem const * item )
 {
-    if ( key == "SolutionDir" )
+    if ( key.compare("SolutionDir", Qt::CaseInsensitive) == 0 )
     {
         return visit( "InputDir", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "SolutionPath" )
+    else if ( key.compare("SolutionPath", Qt::CaseInsensitive) == 0 )
     {
         return visit( "InputPath", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "SolutionName" )
+    else if ( key.compare("SolutionName", Qt::CaseInsensitive) == 0 )
     {
         return visit( "InputName", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "ProjectFileName" )
+    else if ( key.compare("ProjectFileName", Qt::CaseInsensitive) == 0 )
     {
         return visit( "SolutionFileName", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }
-    else if ( key == "SolutionExt" )
+    else if ( key.compare("SolutionExt", Qt::CaseInsensitive) == 0 )
     {
         return visit( "InputExt", static_cast<KDevelop::ProjectBaseItem const *>(item) );
     }

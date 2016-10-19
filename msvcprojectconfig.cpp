@@ -86,8 +86,30 @@ void parseConfigCompilerTool(MsvcProjectConfig & result, QXmlStreamReader & read
         result.preprocessorDefines.insert( nameAndValue.value(0), nameAndValue.value(1) );
     }
     
-    result.additionalIncludeDirectories = 
-        reader.attributes().value("AdditionalIncludeDirectories").toString().split(';');
+    // Someone at MS decided that everything should be in quotes
+    // Also the MSVC debugger hides the quotes from you.
+    // (Spent 2 hours to figure out this)
+    bool insideQuotedString = false;
+    QString current;
+    for ( auto c : reader.attributes().value("AdditionalIncludeDirectories") )
+    {
+        if ( c.unicode() == '"' )
+            insideQuotedString = !insideQuotedString;
+        else
+        {
+            if ( insideQuotedString || c.unicode() != ';' )
+                current += c;
+            else
+            {
+                if (!current.isEmpty() )
+                    result.additionalIncludeDirectories << current;
+                current.clear();
+            }
+        }
+    }
+
+    if ( !current.isEmpty()  )
+        result.additionalIncludeDirectories << current;
     
     int runtimeLibrary = reader.attributes().value("RuntimeLibrary").toInt();
     result.rtLibrary = ( runtimeLibrary >= 0 && runtimeLibrary < 4) ?

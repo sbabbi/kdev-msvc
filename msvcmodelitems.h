@@ -80,10 +80,17 @@ public:
         uuid_ = uuid;
     }
     
+    void setRootNamespace(QString const & ns )
+    {
+        root_namespace_ = ns;
+    }
+    
     QUuid uuid() const { return uuid_; }
+    QString rootNamespace() const { return root_namespace_; }
 
 private:
     QString current_config_;
+    QString root_namespace_;
     QHash< QString, MsvcProjectConfig > configurations_;
     QUuid uuid_;
 };

@@ -130,10 +130,26 @@ KDevelop::Path::List MsvcProjectManager::includeDirectories(KDevelop::ProjectBas
     {
         if ( MsvcProjectItem * projItem = dynamic_cast<MsvcProjectItem*>(p) )
         {
+            const QUrl projectPath = projItem->path().parent().toUrl();
             QStringList includes = projItem->getCurrentConfig().additionalIncludeDirectories;
             
             MsvcVariableReplacer replacer; 
-            result.append( KDevelop::toPathList( replacer.replace(includes, projItem) ) );
+            
+            for (QString const & s : replacer.replace(includes, projItem) )
+            {
+                QUrl url = QUrl::fromUserInput(s);
+                
+                // Relative paths are relative to the project path.
+                if ( url.isRelative() )
+                    url = projectPath.resolved(url);
+
+                if ( url.isValid() )
+                    result << KDevelop::Path(url);
+                else
+                {
+                    qCWarning(KDEV_MSVC) << "Invalid include path:" << s;
+                }
+            }
             break;
         }
     }

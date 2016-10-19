@@ -135,9 +135,11 @@ void MsvcVcProjParser::parseVisualStudioProject(QXmlStreamReader& reader, MsvcPr
 {
     QString projectName = reader.attributes().value("Name").toString();
     QUuid projectUuid = reader.attributes().value("ProjectGUID").toString();
+    QString rootNameSpace = reader.attributes().value("RootNamespace").toString();
     
     proj->rename( projectName );
     proj->setUuid( projectUuid );
+    proj->setRootNamespace( rootNameSpace );
    
     while ( reader.readNextStartElement() )
     {
