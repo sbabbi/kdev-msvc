@@ -22,6 +22,7 @@
 #include "msvcconfig.h"
 
 #include <QFileInfo>
+#include <QSettings>
 #include <QUrl>
 #include <Qtglobal>
 
@@ -92,6 +93,25 @@ QList<MsvcConfig::CompilerPath> MsvcConfig::findMSVC()
     }
     
     return result;
+}
+
+KDevelop::Path MsvcConfig::findWinSdk()
+{
+#ifdef Q_OS_WIN
+    QSettings group(R"(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows)", QSettings::NativeFormat);
+    
+    if ( group.contains("CurrentInstallFolder") )
+    {
+        KDevelop::Path sdkDir(group.value("CurrentInstallFolder").toString());
+        KDevelop::Path includeDir( sdkDir, "Include" );
+        
+        if ( includeDir.isLocalFile() && QFileInfo(includeDir.toLocalFile()).isDir() )
+            return includeDir;
+    }
+    
+#endif // Q_OS_WIN
+
+    return KDevelop::Path();
 }
 
 QList< MsvcConfig::CompilerPath > MsvcConfig::findCompilerPath( const KDevelop::Path & common7path, int version )

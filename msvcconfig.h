@@ -59,6 +59,8 @@ public:
      */
     static QList< CompilerPath > findMSVC();
     
+    static KDevelop::Path findWinSdk();
+    
 private:
     static QList< CompilerPath > findCompilerPath( const KDevelop::Path & common7path, int version );
 };

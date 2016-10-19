@@ -81,6 +81,12 @@ MsvcBuilderPreferences::MsvcBuilderPreferences(KDevelop::IPlugin* plugin,
 
     connect(m_configUi->config_combo, static_cast<void (QComboBox::*)(const QString &)>( &KComboBox::currentIndexChanged ),
             this, &MsvcBuilderPreferences::onConfigurationChanged );
+    
+    // Emit changed signal!
+    connect( m_configUi->builder_path, &KUrlRequester::textChanged, this, [this](QString const &) { emit changed(); } );
+    connect( m_configUi->msvc_include, &KUrlRequester::textChanged, this, [this](QString const &) { emit changed(); } );
+    connect( m_configUi->config_combo, static_cast<void (QComboBox::*)(int)>( &QComboBox::currentIndexChanged ), this, [this](int) { emit changed(); } );
+    connect( m_configUi->arch_combo, static_cast<void (QComboBox::*)(int)>( &QComboBox::currentIndexChanged ), this, [this](int) { emit changed(); } );
 }
 
 MsvcBuilderPreferences::~MsvcBuilderPreferences()
@@ -107,6 +113,16 @@ void MsvcBuilderPreferences::apply()
     //TODO saving currentText is not very pretty...
     cg.writeEntry( MsvcConfig::ACTIVE_CONFIGURATION, m_configUi->config_combo->currentText() );
     cg.writeEntry( MsvcConfig::ACTIVE_ARCHITECTURE, m_configUi->arch_combo->currentText() );
+    
+    // Hidden for now
+    if ( !cg.hasKey( MsvcConfig::WINSDK_INCLUDE ) )
+    {
+        KDevelop::Path sdkPath = MsvcConfig::findWinSdk();
+        if ( sdkPath.isValid() )
+        {
+            cg.writeEntry( MsvcConfig::WINSDK_INCLUDE, sdkPath.toLocalFile() );
+        }
+    }
 }
 
 void MsvcBuilderPreferences::reset()
