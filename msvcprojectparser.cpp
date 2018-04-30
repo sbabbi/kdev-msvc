@@ -201,14 +201,14 @@ std::unique_ptr< MsvcProjectItem > MsvcVcxProjParser::parse( QXmlStreamReader & 
     if ( !filterFileName.isLocalFile() )
     {
         qCWarning(KDEV_MSVC) << "Cannot parse non-local file: (" << filterFileName << ")";
-        return false;
+        return {};
     }
     
     QFile filterFile( filterFileName.toLocalFile() );
     if ( !filterFile.open(QFile::ReadOnly) )
     {
         qCWarning(KDEV_MSVC) << "Cannot open: " << filterFile.fileName();
-        return false;
+        return {};
     }
     
     qCDebug(KDEV_MSVC) << "Parsing filter file: " << filterFile.fileName();

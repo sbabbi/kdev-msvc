@@ -24,7 +24,7 @@
 #include <QFileInfo>
 #include <QSettings>
 #include <QUrl>
-#include <Qtglobal>
+#include <QtGlobal>
 
 #include <KConfigGroup>
 
